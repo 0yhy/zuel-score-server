@@ -11,12 +11,15 @@ const courseSchema = mongoose.Schema({
   "teacher_id": { type: String, required: true },
   "teacher_name": { type: String, required: true },
   "average": { type: Number, required: false },
-  "score0": { type: Number, required: false },
-  "score1": { type: Number, required: false },
-  "score2": { type: Number, required: false },
-  "score3": { type: Number, required: false },
-  "score4": { type: Number, required: false },
-  "people_count": { type: Number, required: false }
+  "scores": {
+    "0": { type: Number, required: false, default: 0 },
+    "1": { type: Number, required: false, default: 0 },
+    "2": { type: Number, required: false, default: 0 },
+    "3": { type: Number, required: false, default: 0 },
+    "4": { type: Number, required: false, default: 0 },
+  },
+  "people_count": { type: Number, required: false, default: 0 },
+  "total_score": { type: Number, required: false, default: 0 }
 });
 const CourseModel = mongoose.model("course", courseSchema);
 
