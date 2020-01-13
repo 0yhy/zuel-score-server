@@ -15,11 +15,32 @@ router.get("/course", function (req, res, next) {
   })
 });
 
+// 获取课程详情
+router.get("/course/detail", function (req, res, next) {
+  const { course_name, teacher_name } = req.query;
+  CourseModel.findOne({ course_name: course_name, teacher_name: teacher_name }, function (err, course) {
+    res.send({ code: 0, data: course });
+  })
+})
+
 // 获取老师列表
 router.get("/teacher", function (req, res, next) {
   TeacherModel.find({}, function (err, teachers) {
     res.send({ code: 0, data: teachers });
   })
+});
+
+// 按老师查询课程列表
+router.get("/teacher/course", function (req, res, next) {
+  const { teacher_name } = req.query;
+  CourseModel.find({ teacher_name: teacher_name }, function (err, courses) {
+    if (err) {
+      res.send({ code: 1, msg: "Not Found" });
+    }
+    else {
+      res.send({ code: 0, data: courses });
+    }
+  });
 });
 
 // 给某一门课评分
@@ -44,14 +65,18 @@ router.post("/score", function (req, res, next) {
   }
 
   CourseModel.findOne({ teacher_name, course_name }, function (err, course) {
-    let { total_score, people_count, average, _id, scores } = course;
+    let { total_score, people_count, average, _id, scores, percentage } = course;
     total_score += score;
     people_count += 1;
     average = (total_score / people_count).toFixed(2);
     scores[flag] += 1;
+    indexs = ["0", "1", "2", "3", "4"];
+    for (let index in indexs) {
+      percentage[index] = (scores[index] / people_count * 100).toFixed(2);
+    }
     CourseModel.updateOne(
       { _id },
-      { total_score: total_score, people_count: people_count, average: average, scores: scores },
+      { total_score: total_score, people_count: people_count, average: average, scores: scores, percentage: percentage },
       function (err, doc) {
         if (err) {
           res.send({ code: 1, msg: err })

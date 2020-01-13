@@ -18,6 +18,13 @@ const courseSchema = mongoose.Schema({
     "3": { type: Number, required: false, default: 0 },
     "4": { type: Number, required: false, default: 0 },
   },
+  "percentage": {
+    "0": { type: Number, required: false, default: 0 },
+    "1": { type: Number, required: false, default: 0 },
+    "2": { type: Number, required: false, default: 0 },
+    "3": { type: Number, required: false, default: 0 },
+    "4": { type: Number, required: false, default: 0 },
+  },
   "people_count": { type: Number, required: false, default: 0 },
   "total_score": { type: Number, required: false, default: 0 }
 });
