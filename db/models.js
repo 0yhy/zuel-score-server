@@ -28,15 +28,22 @@ const courseSchema = mongoose.Schema({
   "people_count": { type: Number, required: false, default: 0 },
   "total_score": { type: Number, required: false, default: 0 }
 });
-const CourseModel = mongoose.model("course", courseSchema);
 
 const teacherSchema = mongoose.Schema({
   "teacher_name": { type: String, required: true },
   "gender": { type: Number, required: true }
 });
+
+const userSchema = mongoose.Schema({
+  "openid": { type: "String", required: true }
+})
+
+const CourseModel = mongoose.model("course", courseSchema);
 const TeacherModel = mongoose.model("teacher", teacherSchema);
+const UserModel = mongoose.model("user", userSchema);
 
 module.exports = {
   CourseModel: CourseModel,
-  TeacherModel: TeacherModel
+  TeacherModel: TeacherModel,
+  UserModel: UserModel
 };
