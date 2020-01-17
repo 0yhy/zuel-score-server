@@ -35,15 +35,43 @@ const teacherSchema = mongoose.Schema({
 });
 
 const userSchema = mongoose.Schema({
-  "openid": { type: "String", required: true }
+  "openid": { type: String, required: true },
+  "session_key": { type: String, required: true },
+  "isverified": { type: Boolean, required: true, default: false }
+})
+
+const likeSchema = mongoose.Schema({
+  "openid": { type: String, required: true },
+  "course_id": { type: String, required: true },
+  "islike": { type: Boolean, required: true }
+})
+
+const dislikeSchema = mongoose.Schema({
+  "openid": { type: String, required: true },
+  "course_id": { type: String, required: true },
+  "isdislike": { type: Boolean, required: true }
+})
+
+const scoreSchema = mongoose.Schema({
+  "openid": { type: String, required: true },
+  "score": {
+    "first": { type: Number, required: true },
+    "second": { type: Number, required: true },
+  }
 })
 
 const CourseModel = mongoose.model("course", courseSchema);
 const TeacherModel = mongoose.model("teacher", teacherSchema);
 const UserModel = mongoose.model("user", userSchema);
+const LikeModel = mongoose.model("like", likeSchema);
+const DislikeModel = mongoose.model("dislike", dislikeSchema);
+const ScoreModel = mongoose.model("score", scoreSchema);
 
 module.exports = {
   CourseModel: CourseModel,
   TeacherModel: TeacherModel,
-  UserModel: UserModel
+  UserModel: UserModel,
+  LikeModel: LikeModel,
+  DislikeModel: DislikeModel,
+  ScoreModel: ScoreModel
 };

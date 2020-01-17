@@ -36,23 +36,19 @@ router.post("/checkuser", function (req, res, next) {
         });
       }
       else {
-        let data = JSON.parse(body);
-
+        const { openid, session_key } = JSON.parse(body);
         // 签发jwt
         const payload = {
-          name: "Shaw",
+          openid: openid
         };
-        const options = {
-          expiresIn: "1day"
-        };
-        let token = jwt.sign(payload, tokenSecret, options);
+        let token = jwt.sign(payload, tokenSecret, { expiresIn: "2 days" });
         res.send({ code: 0, data: token });
 
         // 数据库查找用户
-        UserModel.findOne({ openid: data.openid }, function (err, user) {
+        UserModel.findOne({ openid: openid }, function (err, user) {
           // 用户第一次登陆
           if (!user) {
-            new UserModel({ openid: data.openid }).save(function (err, newuser) {
+            new UserModel({ openid: openid, session_key: session_key }).save(function (err, newuser) {
               console.log(newuser);
             })
           }
