@@ -139,7 +139,18 @@ router.get("/course/score", verifyToken, function (req, res, next) {
   const course_id = req.query.course_id;
   const openid = req.payload.openid;
   ScoreModel.findOne({ course_id, openid }, function (err, score) {
-    res.send({ code: 0, data: score });
+    if (score) {
+      res.send({ code: 0, data: score });
+    }
+    else {
+      let score = {
+        score: {
+          first: "0",
+          second: "0"
+        }
+      }
+      res.send({ code: 0, data: score });
+    }
   });
 });
 
@@ -165,11 +176,11 @@ router.get("/teacher/course", verifyToken, function (req, res, next) {
 
 // 给某一门课评分
 router.post("/score", verifyToken, function (req, res, next) {
-  let { course_id, newscore_string } = req.body;
-  let openid = req.payload.openid;
-  let score_first = newscore_string[0];
-  let score_second = newscore_string[1];
-  let newscore_number = Number(newscore_string);
+  const { course_id, newscore_string } = req.body;
+  const openid = req.payload.openid;
+  const score_first = newscore_string[0];
+  const score_second = newscore_string[1];
+  const newscore_number = Number(newscore_string);
   let flag = "";
   if (newscore_number < 60) {
     flag = "0";

@@ -37,7 +37,8 @@ const teacherSchema = mongoose.Schema({
 const userSchema = mongoose.Schema({
   "openid": { type: String, required: true },
   "session_key": { type: String, required: true },
-  "isverified": { type: Boolean, required: true, default: false }
+  "isverified": { type: Boolean, required: true, default: false },
+  "student_id": { type: String, required: false }
 })
 
 const likeSchema = mongoose.Schema({

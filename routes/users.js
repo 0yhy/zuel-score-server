@@ -3,12 +3,13 @@ const router = express.Router();
 
 const request = require("request");
 const jwt = require("jsonwebtoken");
+const verifyToken = require("../middleware/verifyToken");
 
 // 该文件里存放了appid和appsecret
 const { AppID, AppSecret, tokenSecret } = require("../wxconfig");
 const { UserModel } = require("../db/models");
 
-/* GET users listing. */
+// 获取用户列表
 router.get('/', function (req, res, next) {
   res.send('respond with a resource');
 });
@@ -60,5 +61,23 @@ router.post("/checkuser", function (req, res, next) {
     });
   }
 });
+
+// 获取用户身份验证情况
+router.get("/isverified", verifyToken, function (req, res, next) {
+  console.log(req.payload);
+  const openid = req.payload.openid;
+  console.log(openid);
+  UserModel.findOne({ openid }, function (err, user) {
+    if (err) {
+      res.send({ code: 1, msg: err });
+    }
+    else {
+      if (user) {
+        res.send({ code: 0, data: user.isverified });
+      }
+    }
+  });
+});
+
 
 module.exports = router;
