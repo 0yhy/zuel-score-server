@@ -7,7 +7,7 @@ const verifyToken = require("../middleware/verifyToken");
 
 // 该文件里存放了appid和appsecret
 const { AppID, AppSecret, tokenSecret } = require("../wxconfig");
-const { UserModel } = require("../db/models");
+const { UserModel, ScoreModel } = require("../db/models");
 
 // 获取用户列表
 router.get('/', function (req, res, next) {
@@ -79,5 +79,19 @@ router.get("/isverified", verifyToken, function (req, res, next) {
   });
 });
 
+// 获取用户所有填写过的成绩
+router.get("/myscore", verifyToken, function (req, res, next) {
+  const openid = req.payload.openid;
+  const filter = { openid: 0, __v: 0, course_id: 0 };//过滤指定属性（这里为密码和自带的_v）
+
+  ScoreModel.find({ openid }, filter, function (err, scores) {
+    if (!scores) {
+      res.send({ code: 0, data: "暂无成绩" });
+    }
+    else {
+      res.send({ code: 0, data: scores });
+    }
+  });
+});
 
 module.exports = router;

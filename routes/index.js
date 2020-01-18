@@ -176,7 +176,7 @@ router.get("/teacher/course", verifyToken, function (req, res, next) {
 
 // 给某一门课评分
 router.post("/score", verifyToken, function (req, res, next) {
-  const { course_id, newscore_string } = req.body;
+  const { course_id, newscore_string, course_name } = req.body;
   const openid = req.payload.openid;
   const score_first = newscore_string[0];
   const score_second = newscore_string[1];
@@ -211,7 +211,7 @@ router.post("/score", verifyToken, function (req, res, next) {
       if (!score) {
         oldscore_number = 0;
         people_delta = 1;
-        new ScoreModel({ openid: openid, course_id: course_id, score: newscore_json }).save(function (err, doc) {
+        new ScoreModel({ openid: openid, course_id: course_id, score: newscore_json, course_name: course_name }).save(function (err, doc) {
           // res.send({ code: 0, data: res });
         });
       }
@@ -219,14 +219,14 @@ router.post("/score", verifyToken, function (req, res, next) {
       else {
         oldscore_number = Number(score.score.first) * 10 + Number(score.score.second);
         people_delta = 0;
-        ScoreModel.updateOne({ openid, course_id }, { score: newscore_json }, function (err, doc) {
+        ScoreModel.updateOne({ openid, course_id }, { score: newscore_json, course_name: course_name }, function (err, doc) {
           // res.send({ code: 0, data: doc });
         });
       }
       total_score = total_score - oldscore_number + newscore_number;
       people_count += people_delta;
       average = (total_score / people_count).toFixed(2);
-      scores[flag] += 1;
+      scores[flag] += people_delta;
       indexs = ["0", "1", "2", "3", "4"];
       for (let index in indexs) {
         percentage[index] = (scores[index] / people_count * 100).toFixed(2);
