@@ -54,9 +54,10 @@ const dislikeSchema = mongoose.Schema({
 
 const scoreSchema = mongoose.Schema({
   "openid": { type: String, required: true },
+  "course_id": { type: String, required: true },
   "score": {
-    "first": { type: Number, required: true },
-    "second": { type: Number, required: true },
+    "first": { type: String, required: true },
+    "second": { type: String, required: true },
   }
 })
 

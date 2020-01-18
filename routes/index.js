@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const verifyToken = require("../middleware/verifyToken");
 
-const { TeacherModel, CourseModel, LikeModel, DislikeModel } = require("../db/models");
+const { TeacherModel, CourseModel, LikeModel, DislikeModel, ScoreModel } = require("../db/models");
 
 /* GET home page. */
 router.get('/', function (req, res, next) {
@@ -27,8 +27,8 @@ router.get("/course/detail", verifyToken, function (req, res, next) {
 
 // 获取课程点赞与否
 router.get("/course/like", verifyToken, function (req, res, next) {
-  let openid = req.payload.openid;
-  let course_id = req.query.course_id;
+  const openid = req.payload.openid;
+  const course_id = req.query.course_id;
   LikeModel.findOne({ openid: openid, course_id: course_id }, function (err, like) {
     if (!err) {
       let islike;
@@ -52,8 +52,8 @@ router.get("/course/like", verifyToken, function (req, res, next) {
 });
 // 获取课程不喜欢与否
 router.get("/course/dislike", verifyToken, function (req, res, next) {
-  let openid = req.payload.openid;
-  let course_id = req.query.course_id;
+  const openid = req.payload.openid;
+  const course_id = req.query.course_id;
   DislikeModel.findOne({ openid: openid, course_id: course_id }, function (err, dislike) {
     if (!err) {
       let isdislike;
@@ -77,8 +77,8 @@ router.get("/course/dislike", verifyToken, function (req, res, next) {
 
 // 点赞课程
 router.get("/course/clicklike", verifyToken, function (req, res, next) {
-  let openid = req.payload.openid;
-  let course_id = req.query.course_id;
+  const openid = req.payload.openid;
+  const course_id = req.query.course_id;
   LikeModel.findOne({ openid: openid, course_id: course_id }, function (err, like) {
     if (!like) {
       new LikeModel({ openid: openid, course_id: course_id, islike: true }).save(function (err, doc) {
@@ -95,8 +95,8 @@ router.get("/course/clicklike", verifyToken, function (req, res, next) {
 });
 // 取消点赞课程
 router.get("/course/cancellike", verifyToken, function (req, res, next) {
-  let openid = req.payload.openid;
-  let course_id = req.query.course_id;
+  const openid = req.payload.openid;
+  const course_id = req.query.course_id;
   LikeModel.findOne({ openid: openid, course_id: course_id }, function (err, like) {
     LikeModel.updateOne({ openid: openid, course_id: course_id }, { islike: false }, function (err, doc) {
       res.send({ code: 0, data: doc });
@@ -104,11 +104,10 @@ router.get("/course/cancellike", verifyToken, function (req, res, next) {
     });
   })
 });
-
 // 不喜欢课程
 router.get("/course/clickdislike", verifyToken, function (req, res, next) {
-  let openid = req.payload.openid;
-  let course_id = req.query.course_id;
+  const openid = req.payload.openid;
+  const course_id = req.query.course_id;
   DislikeModel.findOne({ openid: openid, course_id: course_id }, function (err, dislike) {
     if (!dislike) {
       new DislikeModel({ openid: openid, course_id: course_id, isdislike: true }).save(function (err, doc) {
@@ -126,14 +125,22 @@ router.get("/course/clickdislike", verifyToken, function (req, res, next) {
 });
 // 取消不喜欢课程
 router.get("/course/canceldislike", verifyToken, function (req, res, next) {
-  let openid = req.payload.openid;
-  let course_id = req.query.course_id;
+  const openid = req.payload.openid;
+  const course_id = req.query.course_id;
   DislikeModel.findOne({ openid: openid, course_id: course_id }, function (err, dislike) {
     DislikeModel.updateOne({ _id: dislike._id }, { isdislike: false }, function (err, doc) {
       res.send({ code: 0, data: doc });
       console.log(doc);
     });
   })
+});
+// 获取课程得分
+router.get("/course/score", verifyToken, function (req, res, next) {
+  const course_id = req.query.course_id;
+  const openid = req.payload.openid;
+  ScoreModel.findOne({ course_id, openid }, function (err, score) {
+    res.send({ code: 0, data: score });
+  });
 });
 
 // 获取老师列表
@@ -158,47 +165,75 @@ router.get("/teacher/course", verifyToken, function (req, res, next) {
 
 // 给某一门课评分
 router.post("/score", verifyToken, function (req, res, next) {
-  let { teacher_name, course_name, score } = req.body;
-  score = Number(score);
+  let { course_id, newscore_string } = req.body;
+  let openid = req.payload.openid;
+  let score_first = newscore_string[0];
+  let score_second = newscore_string[1];
+  let newscore_number = Number(newscore_string);
   let flag = "";
-  if (score < 60) {
+  if (newscore_number < 60) {
     flag = "0";
   }
-  else if (score < 70) {
+  else if (newscore_number < 70) {
     flag = "1";
   }
-  else if (score < 80) {
+  else if (newscore_number < 80) {
     flag = "2";
   }
-  else if (score < 90) {
+  else if (newscore_number < 90) {
     flag = "3";
   }
   else {
     flag = "4";
   }
 
-  CourseModel.findOne({ teacher_name, course_name }, function (err, course) {
-    let { total_score, people_count, average, _id, scores, percentage } = course;
-    total_score += score;
-    people_count += 1;
-    average = (total_score / people_count).toFixed(2);
-    scores[flag] += 1;
-    indexs = ["0", "1", "2", "3", "4"];
-    for (let index in indexs) {
-      percentage[index] = (scores[index] / people_count * 100).toFixed(2);
-    }
-    CourseModel.updateOne(
-      { _id },
-      { total_score: total_score, people_count: people_count, average: average, scores: scores, percentage: percentage },
-      function (err, doc) {
-        if (err) {
-          res.send({ code: 1, msg: err })
-        }
-        else {
-          res.send({ code: 0, data: doc });
-        }
+  CourseModel.findOne({ _id: course_id }, function (err, course) {
+    let { total_score, people_count, average, scores, percentage } = course;
+    let oldscore_number, people_delta;
+    // 更新分数表
+    ScoreModel.findOne({ openid, course_id }, function (err, score) {
+      let newscore_json = {
+        first: score_first,
+        second: score_second
       }
-    );
+      // 第一次添加该课程分数
+      if (!score) {
+        oldscore_number = 0;
+        people_delta = 1;
+        new ScoreModel({ openid: openid, course_id: course_id, score: newscore_json }).save(function (err, doc) {
+          // res.send({ code: 0, data: res });
+        });
+      }
+      // 修改该课程分数
+      else {
+        oldscore_number = Number(score.score.first) * 10 + Number(score.score.second);
+        people_delta = 0;
+        ScoreModel.updateOne({ openid, course_id }, { score: newscore_json }, function (err, doc) {
+          // res.send({ code: 0, data: doc });
+        });
+      }
+      total_score = total_score - oldscore_number + newscore_number;
+      people_count += people_delta;
+      average = (total_score / people_count).toFixed(2);
+      scores[flag] += 1;
+      indexs = ["0", "1", "2", "3", "4"];
+      for (let index in indexs) {
+        percentage[index] = (scores[index] / people_count * 100).toFixed(2);
+      }
+      // 更新课程表
+      CourseModel.update(
+        { _id: course_id },
+        { total_score: total_score, people_count: people_count, average: average, scores: scores, percentage: percentage },
+        function (err, doc) {
+          if (err) {
+            // console.log(err);
+          }
+          else {
+            res.send({ code: 0, data: doc });
+          }
+        }
+      );
+    });
   });
 });
 
