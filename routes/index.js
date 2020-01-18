@@ -237,7 +237,7 @@ router.post("/score", verifyToken, function (req, res, next) {
         { total_score: total_score, people_count: people_count, average: average, scores: scores, percentage: percentage },
         function (err, doc) {
           if (err) {
-            // console.log(err);
+            res.send({ code: 1, data: err });
           }
           else {
             res.send({ code: 0, data: doc });

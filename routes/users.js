@@ -7,7 +7,7 @@ const verifyToken = require("../middleware/verifyToken");
 
 // 该文件里存放了appid和appsecret
 const { AppID, AppSecret, tokenSecret } = require("../wxconfig");
-const { UserModel, ScoreModel } = require("../db/models");
+const { UserModel, ScoreModel, AdviceModel } = require("../db/models");
 
 // 获取用户列表
 router.get('/', function (req, res, next) {
@@ -90,6 +90,24 @@ router.get("/myscore", verifyToken, function (req, res, next) {
     }
     else {
       res.send({ code: 0, data: scores });
+    }
+  });
+});
+
+// 用户意见反馈
+router.post("/advice", verifyToken, function (req, res, next) {
+  const openid = req.payload.openid;
+  const advice = req.body.advice;
+  UserModel.findOne({ openid }, function (err, user) {
+    if (user.student_id) {
+      new AdviceModel({ openid, advice, student_id: user.student_id }).save(function (err, newadvice) {
+        res.send({ code: 0, data: "ok" });
+      });
+    }
+    else {
+      new AdviceModel({ openid, advice }).save(function (err, newadvice) {
+        res.send({ code: 0, data: "ok" });
+      });
     }
   });
 });

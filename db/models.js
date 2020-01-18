@@ -39,19 +39,19 @@ const userSchema = mongoose.Schema({
   "session_key": { type: String, required: true },
   "isverified": { type: Boolean, required: true, default: false },
   "student_id": { type: String, required: false }
-})
+});
 
 const likeSchema = mongoose.Schema({
   "openid": { type: String, required: true },
   "course_id": { type: String, required: true },
   "islike": { type: Boolean, required: true }
-})
+});
 
 const dislikeSchema = mongoose.Schema({
   "openid": { type: String, required: true },
   "course_id": { type: String, required: true },
   "isdislike": { type: Boolean, required: true }
-})
+});
 
 const scoreSchema = mongoose.Schema({
   "openid": { type: String, required: true },
@@ -61,7 +61,13 @@ const scoreSchema = mongoose.Schema({
     "first": { type: String, required: true },
     "second": { type: String, required: true },
   }
-})
+});
+
+const adviceSchema = mongoose.Schema({
+  "openid": { type: String, required: true },
+  "student_id": { type: String, required: false },
+  "advice": { type: String, required: true }
+});
 
 const CourseModel = mongoose.model("course", courseSchema);
 const TeacherModel = mongoose.model("teacher", teacherSchema);
@@ -69,6 +75,7 @@ const UserModel = mongoose.model("user", userSchema);
 const LikeModel = mongoose.model("like", likeSchema);
 const DislikeModel = mongoose.model("dislike", dislikeSchema);
 const ScoreModel = mongoose.model("score", scoreSchema);
+const AdviceModel = mongoose.model("advice", adviceSchema);
 
 module.exports = {
   CourseModel: CourseModel,
@@ -76,5 +83,6 @@ module.exports = {
   UserModel: UserModel,
   LikeModel: LikeModel,
   DislikeModel: DislikeModel,
-  ScoreModel: ScoreModel
+  ScoreModel: ScoreModel,
+  AdviceModel: AdviceModel
 };
