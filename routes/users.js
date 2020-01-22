@@ -12,6 +12,8 @@ const chrome = require("selenium-webdriver/chrome");
 const { AppID, AppSecret, tokenSecret } = require("../wxconfig");
 const { UserModel, ScoreModel, AdviceModel } = require("../db/models");
 
+let access_token = "24.9164f3d20116b18dd9e259928a9b0863.2592000.1582297936.282335-18333621"
+
 // 获取用户列表
 router.get('/', function (req, res, next) {
   res.send('respond with a resource');
@@ -118,7 +120,7 @@ router.post("/advice", verifyToken, function (req, res, next) {
 router.post("/verify", verifyToken, function (req, res, next) {
   const { username, password } = req.body;
   let loginFlag = false;
-  let options = new chrome.Options().addArguments("window-size=1920*3000");
+  let options = new chrome.Options().addArguments("--headless", "--no-sandbox");
   (async () => {
     let browser = await new Builder().setChromeOptions(options).forBrowser("chrome").build()
       .catch(err => console.log("1", err));
@@ -132,52 +134,75 @@ router.post("/verify", verifyToken, function (req, res, next) {
       await loginForm.findElement({ id: "password" }).sendKeys(password)
         .catch(err => console.log("4", err));
       let captchaImg = await loginForm.findElement({ id: "captchaImg" })
-        .catch(err => console.log(err));
-      await (async () => {
-        if (captchaImg) {
-          console.log("I've confirmed that cpatcha exsisted\n")
-          await captchaImg.takeScreenshot()
-            .then((screenshot) => {
-              console.log("I have taken a screenshot");
-              res.send({ code: 0, captchaBase64: screenshot });
-            })
-            .catch(err => { console.log(err) });
-          router.get("/verify", verifyToken, async function (req, res, next) {
-            await loginForm.findElement({ id: "captchaResponse" }).sendKeys(req.query.captcha)
-              .catch(err => console.log(err));
-            await loginForm.findElement({ className: "auth_login_btn" }).click()
-              .catch(err => console.log("5555555555555", err));
-            await browser.getTitle()
-              .then((curtitle) => {
-                if (curtitle == "教学一体化服务平台") {
-                  loginFlag = true;
-                }
-                res.send({ code: 0, isverified: loginFlag });
-                browser.quit();
-              })
-              .catch(err => console.log(err));
-          });
-        }
-        else {
-          await loginForm.findElement({ className: "auth_login_btn" }).click()
-            .then(() => { console.log("I clicked login") })
-            .catch(err => console.log("5", err));
-          await browser.getTitle()
-            .then((curtitle) => {
-              console.log(curtitle);
-              if (curtitle == "教学一体化服务平台") {
-                loginFlag = true;
+        .catch(err => console.log("err"));
+
+      if (captchaImg) {
+        console.log("I've confirmed that cpatcha exsisted\n")
+        await captchaImg.takeScreenshot()
+          .then((screenshot) => {
+            console.log("I have taken a screenshot");
+            // 处理验证码
+            let options = {
+              url: `https://aip.baidubce.com/rest/2.0/ocr/v1/webimage?access_token=${access_token}`,
+              header: { "Content-Type": "application/x-www-form-urlencoded" },
+              method: "POST",
+              formData: {
+                image: screenshot
               }
-              console.log("true");
-              res.send({ code: 0, isverified: loginFlag });
-              browser.quit();
+            }
+            request(options, async function (err, requestRes, body) {
+              console.log(body);
+              console.log(JSON.parse(body).words_result[0].words);
+              let captcha = JSON.parse(body).words_result[0].words;
+              captcha = captcha.replace(/\s*/g, "");
+              console.log(captcha);
+              await browser.findElement({ id: "captchaResponse" }).sendKeys(captcha)
+              await loginForm.findElement({ className: "auth_login_btn" }).click()
+                .then(() => { console.log("I clicked login") })
+                .catch(err => console.log("5", err));
+              await browser.getTitle()
+                .then((curtitle) => {
+                  if (curtitle == "教学一体化服务平台") {
+                    loginFlag = true;
+                    browser.findElement({ className: "f16" }).getText().then((realname) => {
+                      res.send({ code: 0, data: { isverified: loginFlag, realname: realname } });
+                      browser.quit();
+                    });
+                  }
+                  else {
+                    res.send({ code: 0, data: { isverified: loginFlag } });
+                    browser.quit();
+                  }
+                })
+                .catch(err => console.log(err));
             })
-            .catch(err => console.log(err));
-        }
-      })();
+          })
+          .catch(err => { console.log(err) });
+
+      }
+      else {
+        await loginForm.findElement({ className: "auth_login_btn" }).click()
+          .then(() => { console.log("I clicked login") })
+          .catch(err => console.log("5", err));
+        await browser.getTitle()
+          .then((curtitle) => {
+            if (curtitle == "教学一体化服务平台") {
+              loginFlag = true;
+              browser.findElement({ className: "f16" }).getText().then((realname) => {
+                res.send({ code: 0, data: { isverified: loginFlag, realname: realname } });
+                browser.quit();
+              });
+            }
+            else {
+              res.send({ code: 0, data: { isverified: loginFlag } });
+              browser.quit();
+            }
+          })
+          .catch(err => console.log(err));
+      }
     }
     catch {
-      browser.quit();
+      // browser.quit();
     }
   })();
 });
