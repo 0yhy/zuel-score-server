@@ -13,7 +13,12 @@ router.get('/', function (req, res, next) {
 router.get("/course", verifyToken, function (req, res, next) {
   // console.log(req);
   CourseModel.find({}, function (err, courses) {
-    res.send({ code: 0, data: courses });
+    if (err) {
+      res.send({ code: 1, msg: err });
+    }
+    else {
+      res.send({ code: 0, data: courses });
+    }
   })
 });
 
