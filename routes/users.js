@@ -84,8 +84,34 @@ router.get("/isverified", verifyToken, function (req, res, next) {
   });
 });
 
+// 更改用户身份验证情况
+router.post("/changeverify", verifyToken, function (req, res, next) {
+  const openid = req.payload.openid;
+  const { realname, student_id } = req.body;
+  console.log(openid);
+  console.log(realname, student_id);
+  UserModel.updateOne({ openid }, { isverified: true, realname: realname, student_id: student_id }, function (err, doc) {
+    if (err) {
+      res.send({ code: 1, msg: err });
+    }
+    else {
+      console.log(doc);
+    }
+  })
+});
+
+// 获取用户信息
+router.get("/getuserinfo", verifyToken, function (req, res, next) {
+  const openid = req.payload.openid;
+  UserModel.findOne({ openid }, function (err, user) {
+    if (!err) {
+      res.send({ code: 0, data: user });
+    }
+  })
+});
+
 // 获取用户所有填写过的成绩
-router.get("/myscore", verifyToken, function (req, res, next) {
+router.get("/getscore", verifyToken, function (req, res, next) {
   const openid = req.payload.openid;
   const filter = { openid: 0, __v: 0, course_id: 0 };//过滤指定属性（这里为密码和自带的_v）
 
@@ -117,10 +143,15 @@ router.post("/advice", verifyToken, function (req, res, next) {
   });
 });
 
+// 用户认证身份
 router.post("/verify", verifyToken, function (req, res, next) {
   const { username, password } = req.body;
   let loginFlag = false;
-  let options = new chrome.Options().addArguments("--headless", "--no-sandbox");
+  /* ----------更改chrome浏览器启动选项----------*/
+  // 在Linux下必须指定参数--no-sandbox，否则无法启动
+  // --headless 无头启动 不显示画面
+  // 在-headless下指定window-size，可控制浏览器窗口大小
+  let options = new chrome.Options().addArguments("--no-sandbox", "--headless", "--window-size=1920x945", "--disable-gpu");
   (async () => {
     let browser = await new Builder().setChromeOptions(options).forBrowser("chrome").build()
       .catch(err => console.log("1", err));
@@ -129,13 +160,18 @@ router.post("/verify", verifyToken, function (req, res, next) {
         .catch(err => console.log("1", err));
       let loginForm = await browser.findElement({ id: "casLoginForm" })
         .catch(err => console.log("2", err));
-      await loginForm.findElement({ id: "username" }).sendKeys(username)
+      let usernameInput = await loginForm.findElement({ id: "username" })
         .catch(err => console.log("3", err));
-      await loginForm.findElement({ id: "password" }).sendKeys(password)
+      await usernameInput.sendKeys(username)
+        .catch(err => console.log("3", err));
+      let passwordInput = await loginForm.findElement({ id: "password" })
+        .catch(err => console.log("4", err));
+      await passwordInput.sendKeys(password)
         .catch(err => console.log("4", err));
       let captchaImg = await loginForm.findElement({ id: "captchaImg" })
         .catch(err => console.log("err"));
 
+      // 如果页面上存在验证码
       if (captchaImg) {
         console.log("I've confirmed that cpatcha exsisted\n")
         await captchaImg.takeScreenshot()
@@ -151,9 +187,8 @@ router.post("/verify", verifyToken, function (req, res, next) {
               }
             }
             request(options, async function (err, requestRes, body) {
-              console.log(body);
-              console.log(JSON.parse(body).words_result[0].words);
               let captcha = JSON.parse(body).words_result[0].words;
+              // 去掉识别结果中的空格
               captcha = captcha.replace(/\s*/g, "");
               console.log(captcha);
               await browser.findElement({ id: "captchaResponse" }).sendKeys(captcha)

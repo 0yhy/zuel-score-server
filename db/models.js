@@ -38,7 +38,8 @@ const userSchema = mongoose.Schema({
   "openid": { type: String, required: true },
   "session_key": { type: String, required: true },
   "isverified": { type: Boolean, required: true, default: false },
-  "student_id": { type: String, required: false }
+  "student_id": { type: String, required: false },
+  "realname": { type: String, required: false }
 });
 
 const likeSchema = mongoose.Schema({

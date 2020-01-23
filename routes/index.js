@@ -254,7 +254,7 @@ router.post("/score", verifyToken, function (req, res, next) {
 });
 
 // 后台管理添加课程
-router.post("/backstage/addcourse", verifyToken, function (req, res, next) {
+router.post("/backstage/addcourse", function (req, res, next) {
   const { course_name, teacher_name } = req.body;
   CourseModel.findOne({ course_name, teacher_name }, function (err, course) {
     if (course) {
@@ -275,7 +275,7 @@ router.post("/backstage/addcourse", verifyToken, function (req, res, next) {
 });
 
 // 后台管理添加老师
-router.post("/backstage/addteacher", verifyToken, function (req, res, next) {
+router.post("/backstage/addteacher", function (req, res, next) {
   const { teacher_name, gender } = req.body;
   TeacherModel.findOne({ teacher_name, gender }, function (err, teacher) {
     if (teacher) {
