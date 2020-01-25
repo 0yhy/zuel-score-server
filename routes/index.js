@@ -11,15 +11,84 @@ router.get('/', function (req, res, next) {
 
 //获取课程列表
 router.get("/course", verifyToken, function (req, res, next) {
-  // console.log(req);
-  CourseModel.find({}, function (err, courses) {
-    if (err) {
-      res.send({ code: 1, msg: err });
-    }
-    else {
-      res.send({ code: 0, data: courses });
-    }
-  })
+  let { sort_option } = req.query;
+  console.log("-----------", sort_option)
+  // 默认情况下按照课程名升序排序
+  if (!sort_option) {
+    console.log("Hi")
+    CourseModel.find().sort("course_name").collation({ locale: "zh" }).exec(function (err, courses) {
+      if (err) {
+        res.send({ code: 1, msg: err });
+      }
+      else {
+        res.send({ code: 0, data: courses });
+      }
+    })
+  }
+  // 按平均分降序排列
+  else if (sort_option === "desc_average") {
+    CourseModel.find().sort("-average").exec(function (err, courses) {
+      if (err) {
+        res.send({ code: 1, msg: err });
+      }
+      else {
+        res.send({ code: 0, data: courses });
+      }
+    })
+  }
+  // 按平均分升序排列
+  else if (sort_option === "asc_average") {
+    CourseModel.find().sort("average").exec(function (err, courses) {
+      if (err) {
+        res.send({ code: 1, msg: err });
+      }
+      else {
+        res.send({ code: 0, data: courses });
+      }
+    })
+  }
+  // 按优秀率降序排列
+  else if (sort_option === "desc_above90") {
+    CourseModel.find().sort('-above90').exec(function (err, courses) {
+      if (err) {
+        res.send({ code: 1, msg: err });
+      }
+      else {
+        res.send({ code: 0, data: courses });
+      }
+    })
+  }
+  // 按优秀率升序排列
+  else if (sort_option === "asc_above90") {
+    CourseModel.find().sort('above90').exec(function (err, courses) {
+      if (err) {
+        res.send({ code: 1, msg: err });
+      }
+      else {
+        res.send({ code: 0, data: courses });
+      }
+    })
+  }
+  else if (sort_option === "desc_between80_90") {
+    CourseModel.find().sort('-between80_90').exec(function (err, courses) {
+      if (err) {
+        res.send({ code: 1, msg: err });
+      }
+      else {
+        res.send({ code: 0, data: courses });
+      }
+    })
+  }
+  else if (sort_option === "asc_between80_90") {
+    CourseModel.find().sort('between80_90').exec(function (err, courses) {
+      if (err) {
+        res.send({ code: 1, msg: err });
+      }
+      else {
+        res.send({ code: 0, data: courses });
+      }
+    })
+  }
 });
 
 // 获取课程详情
@@ -183,28 +252,32 @@ router.get("/teacher/course", verifyToken, function (req, res, next) {
 router.post("/score", verifyToken, function (req, res, next) {
   const { course_id, newscore_string, course_name } = req.body;
   const openid = req.payload.openid;
-  const score_first = newscore_string[0];
-  const score_second = newscore_string[1];
+  const score_first = newscore_string[0], score_second = newscore_string[1];
   const newscore_number = Number(newscore_string);
-  let flag = "";
-  if (newscore_number < 60) {
-    flag = "0";
+  let newscore_flag, oldscore_flag;
+  function assignFlag(score_number) {
+    let flag;
+    if (score_number < 60) {
+      flag = "0";
+    }
+    else if (score_number < 70) {
+      flag = "1";
+    }
+    else if (score_number < 80) {
+      flag = "2";
+    }
+    else if (score_number < 90) {
+      flag = "3";
+    }
+    else {
+      flag = "4";
+    }
+    return flag;
   }
-  else if (newscore_number < 70) {
-    flag = "1";
-  }
-  else if (newscore_number < 80) {
-    flag = "2";
-  }
-  else if (newscore_number < 90) {
-    flag = "3";
-  }
-  else {
-    flag = "4";
-  }
+  newscore_flag = assignFlag(newscore_number);
 
   CourseModel.findOne({ _id: course_id }, function (err, course) {
-    let { total_score, people_count, average, scores, percentage } = course;
+    let { total_score, people_count, average, scores, percentage, above90, between80_90 } = course;
     let oldscore_number, people_delta;
     // 更新分数表
     ScoreModel.findOne({ openid, course_id }, function (err, score) {
@@ -223,6 +296,7 @@ router.post("/score", verifyToken, function (req, res, next) {
       // 修改该课程分数
       else {
         oldscore_number = Number(score.score.first) * 10 + Number(score.score.second);
+        oldscore_flag = assignFlag(oldscore_number);
         people_delta = 0;
         ScoreModel.updateOne({ openid, course_id }, { score: newscore_json, course_name: course_name }, function (err, doc) {
           // res.send({ code: 0, data: doc });
@@ -231,15 +305,18 @@ router.post("/score", verifyToken, function (req, res, next) {
       total_score = total_score - oldscore_number + newscore_number;
       people_count += people_delta;
       average = (total_score / people_count).toFixed(2);
-      scores[flag] += people_delta;
+      scores[newscore_flag] += 1;
+      scores[oldscore_flag] -= 1;
       indexs = ["0", "1", "2", "3", "4"];
       for (let index in indexs) {
         percentage[index] = (scores[index] / people_count * 100).toFixed(2);
       }
+      above90 = Number(percentage['4']);
+      between80_90 = Number(percentage['3']);
       // 更新课程表
       CourseModel.update(
         { _id: course_id },
-        { total_score: total_score, people_count: people_count, average: average, scores: scores, percentage: percentage },
+        { total_score: total_score, people_count: people_count, average: average, scores: scores, percentage: percentage, above90: above90, between80_90: between80_90 },
         function (err, doc) {
           if (err) {
             res.send({ code: 1, data: err });
@@ -288,5 +365,19 @@ router.post("/backstage/addteacher", function (req, res, next) {
     }
   });
 });
+
+// 实现搜索
+router.get("/search", function (req, res, next) {
+  const { search_word } = req.query;
+  console.log(search_word);
+  CourseModel.find({
+    $or: [
+      { course_name: { $regex: search_word, $options: "$i" } },
+      { teacher_name: { $regex: search_word, $options: "$i" } }
+    ]
+  }, function (err, courses) {
+    res.send({ code: 0, data: courses });
+  })
+})
 
 module.exports = router;

@@ -25,6 +25,8 @@ const courseSchema = mongoose.Schema({
     "3": { type: Number, required: false, default: 0 },
     "4": { type: Number, required: false, default: 0 },
   },
+  "above90": { type: Number, required: false, default: 0 },
+  "between80_90": { type: Number, required: false, default: 0 },
   "people_count": { type: Number, required: false, default: 0 },
   "total_score": { type: Number, required: false, default: 0 }
 });
