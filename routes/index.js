@@ -367,7 +367,7 @@ router.post("/backstage/addteacher", function (req, res, next) {
 });
 
 // 实现搜索
-router.get("/search", function (req, res, next) {
+router.get("/search", verifyToken, function (req, res, next) {
   const { search_word } = req.query;
   console.log(search_word);
   CourseModel.find({
@@ -378,6 +378,6 @@ router.get("/search", function (req, res, next) {
   }, function (err, courses) {
     res.send({ code: 0, data: courses });
   })
-})
+});
 
 module.exports = router;

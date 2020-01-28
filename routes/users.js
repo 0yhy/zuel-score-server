@@ -5,7 +5,7 @@ const request = require("request");
 const jwt = require("jsonwebtoken");
 const verifyToken = require("../middleware/verifyToken");
 
-const { Builder, until } = require("selenium-webdriver");
+const { Builder } = require("selenium-webdriver");
 const chrome = require("selenium-webdriver/chrome");
 
 // 该文件里存放了appid和appsecret
@@ -21,9 +21,11 @@ router.get('/', function (req, res, next) {
 
 // 校验appid与appsecret，获取session_key 以及 openid
 router.post("/checkuser", function (req, res, next) {
+  // 如果前端传来了登陆凭证
   if (req.body.code) {
     let options = {
       method: "POST",
+      // 向微信
       url: "https://api.weixin.qq.com/sns/jscode2session?",
       formData: {
         appid: AppID,
@@ -35,22 +37,22 @@ router.post("/checkuser", function (req, res, next) {
     // 向微信服务器发送请求验证用户身份
     request(options, function (err, requestRes, body) {
       if (err) {
-        console.log("errrrrrr!");
-        res.json({
-          "code": 1,
-          "msg": "error"
-        });
+        console.log("failed to post code to wechat server");
+        res.send({ "code": 1, "msg": "failed to post code to wechat server" });
       }
       else {
         const { openid, session_key } = JSON.parse(body);
-        // 签发jwt
+
+        /* 签发jwt */
+        //使登录态与openid关联
         const payload = {
           openid: openid
         };
+        // 使用密钥签发token
         let token = jwt.sign(payload, tokenSecret);
         res.send({ code: 0, data: token });
 
-        // 数据库查找用户
+        // 数据库查找用户是否存在
         UserModel.findOne({ openid: openid }, function (err, user) {
           // 用户第一次登陆
           if (!user) {
@@ -58,6 +60,7 @@ router.post("/checkuser", function (req, res, next) {
               console.log(newuser);
             })
           }
+          // 不是第一次登录
           else {
             console.log("user existed");
           }
@@ -69,9 +72,7 @@ router.post("/checkuser", function (req, res, next) {
 
 // 获取用户身份验证情况
 router.get("/isverified", verifyToken, function (req, res, next) {
-  console.log(req.payload);
   const openid = req.payload.openid;
-  console.log(openid);
   UserModel.findOne({ openid }, function (err, user) {
     if (err) {
       res.send({ code: 1, msg: err });
@@ -79,6 +80,9 @@ router.get("/isverified", verifyToken, function (req, res, next) {
     else {
       if (user) {
         res.send({ code: 0, data: user.isverified });
+      }
+      else {
+        res.send({ code: 0, msg: "User not existed" });
       }
     }
   });
@@ -88,14 +92,10 @@ router.get("/isverified", verifyToken, function (req, res, next) {
 router.post("/changeverify", verifyToken, function (req, res, next) {
   const openid = req.payload.openid;
   const { realname, student_id } = req.body;
-  console.log(openid);
   console.log(realname, student_id);
   UserModel.updateOne({ openid }, { isverified: true, realname: realname, student_id: student_id }, function (err, doc) {
     if (err) {
       res.send({ code: 1, msg: err });
-    }
-    else {
-      console.log(doc);
     }
   })
 });
@@ -104,7 +104,10 @@ router.post("/changeverify", verifyToken, function (req, res, next) {
 router.get("/getuserinfo", verifyToken, function (req, res, next) {
   const openid = req.payload.openid;
   UserModel.findOne({ openid }, function (err, user) {
-    if (!err) {
+    if (err) {
+      res.send({ code: 1, msg: err });
+    }
+    else {
       res.send({ code: 0, data: user });
     }
   })
@@ -146,12 +149,13 @@ router.post("/advice", verifyToken, function (req, res, next) {
 // 用户认证身份
 router.post("/verify", verifyToken, function (req, res, next) {
   const { username, password } = req.body;
+  console.log(username, password);
   let loginFlag = false;
   /* ----------更改chrome浏览器启动选项----------*/
   // 在Linux下必须指定参数--no-sandbox，否则无法启动
   // --headless 无头启动 不显示画面
   // 在-headless下指定window-size，可控制浏览器窗口大小
-  let options = new chrome.Options().addArguments("--no-sandbox", "--headless", "--window-size=1920x945", "--disable-gpu");
+  let options = new chrome.Options().addArguments("--no-sandbox", "--disable-gpu");// "--headless", "--window-size=1920x945",
   (async () => {
     let browser = await new Builder().setChromeOptions(options).forBrowser("chrome").build()
       .catch(err => console.log("1", err));
@@ -196,15 +200,21 @@ router.post("/verify", verifyToken, function (req, res, next) {
                 .then(() => { console.log("I clicked login") })
                 .catch(err => console.log("5", err));
               await browser.getTitle()
-                .then((curtitle) => {
+                .then(async (curtitle) => {
+                  console.log("Got Title");
                   if (curtitle == "教学一体化服务平台") {
+                    console.log("trrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrue")
                     loginFlag = true;
-                    browser.findElement({ className: "f16" }).getText().then((realname) => {
+                    let nameElement = await browser.findElement({ className: "f16" })
+                    console.log("nameelement", nameElement);
+                    await nameElement.getText().then((realname) => {
+                      console.log("realname", realname);
                       res.send({ code: 0, data: { isverified: loginFlag, realname: realname } });
                       browser.quit();
                     });
                   }
                   else {
+                    console.log("Dindnt Got Title");
                     res.send({ code: 0, data: { isverified: loginFlag } });
                     browser.quit();
                   }
@@ -220,15 +230,18 @@ router.post("/verify", verifyToken, function (req, res, next) {
           .then(() => { console.log("I clicked login") })
           .catch(err => console.log("5", err));
         await browser.getTitle()
-          .then((curtitle) => {
+          .then(async (curtitle) => {
             if (curtitle == "教学一体化服务平台") {
               loginFlag = true;
-              browser.findElement({ className: "f16" }).getText().then((realname) => {
+              let nameElement = await browser.findElement({ className: "f16" })
+              await nameElement.getText().then((realname) => {
+                console.log(realname);
                 res.send({ code: 0, data: { isverified: loginFlag, realname: realname } });
                 browser.quit();
               });
             }
             else {
+              console.log("Dindnt Got Title");
               res.send({ code: 0, data: { isverified: loginFlag } });
               browser.quit();
             }
