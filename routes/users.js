@@ -9,7 +9,7 @@ const { Builder } = require("selenium-webdriver");
 const chrome = require("selenium-webdriver/chrome");
 
 // 该文件里存放了appid和appsecret
-const { AppID, AppSecret, tokenSecret } = require("../wxconfig");
+const { AppID, AppSecret, tokenSecret } = require("../keys/wxconfig");
 const { UserModel, ScoreModel, AdviceModel } = require("../db/models");
 
 let access_token = "24.9164f3d20116b18dd9e259928a9b0863.2592000.1582297936.282335-18333621"
@@ -97,6 +97,10 @@ router.post("/changeverify", verifyToken, function (req, res, next) {
     if (err) {
       res.send({ code: 1, msg: err });
     }
+    else {
+      res.send({ code: 0, data: doc });
+      console.log(doc);
+    }
   })
 });
 
@@ -155,7 +159,7 @@ router.post("/verify", verifyToken, function (req, res, next) {
   // 在Linux下必须指定参数--no-sandbox，否则无法启动
   // --headless 无头启动 不显示画面
   // 在-headless下指定window-size，可控制浏览器窗口大小
-  let options = new chrome.Options().addArguments("--no-sandbox", "--disable-gpu");// "--headless", "--window-size=1920x945",
+  let options = new chrome.Options().addArguments("--no-sandbox", "--headless", "--window-size=1920x945", "--disable-gpu");// "--headless", "--window-size=1920x945",
   (async () => {
     let browser = await new Builder().setChromeOptions(options).forBrowser("chrome").build()
       .catch(err => console.log("1", err));

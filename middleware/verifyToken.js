@@ -1,5 +1,5 @@
 const jwt = require("jsonwebtoken");
-const { tokenSecret } = require("../wxconfig");
+const { tokenSecret } = require("../keys/wxconfig");
 
 function verifyToken(req, res, next) {
   let token = req.get("Authorization");

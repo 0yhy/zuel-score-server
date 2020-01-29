@@ -7,19 +7,27 @@
 var app = require('../app');
 var debug = require('debug')('zuel-score-server:server');
 var http = require('http');
+var https = require('https');
+var fs = require('fs');
+var path = require('path');
+
+var credentials = {
+  key: fs.readFileSync(path.resolve('keys/3413361_zuel.harryshaun.wang.key')),
+  cert: fs.readFileSync(path.resolve('keys/3413361_zuel.harryshaun.wang.pem'))
+}
 
 /**
  * Get port from environment and store in Express.
  */
 
-var port = normalizePort(process.env.PORT || '1027');
+var port = normalizePort(process.env.PORT || '51027');
 app.set('port', port);
 
 /**
  * Create HTTP server.
  */
 
-var server = http.createServer(app);
+var server = https.createServer(credentials, app);
 
 /**
  * Listen on provided port, on all network interfaces.
